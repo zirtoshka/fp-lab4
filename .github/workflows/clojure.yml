@@ -1,0 +1,35 @@
+name: Clojure CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Clojure CLI
+      uses: DeLaGuardo/setup-clojure@12.5
+      with:
+        cli: latest
+        clj-kondo: latest
+        cljfmt: latest
+
+    - name: Check format
+      run: cljfmt check
+
+    - name: Lint
+      run: clj-kondo --lint src:test
+    
+
+    - name: Install dependencies
+      run: lein deps
+      
+    - name: Run tests
+      run: lein test
