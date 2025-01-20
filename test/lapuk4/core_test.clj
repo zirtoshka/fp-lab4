@@ -57,15 +57,13 @@
   (let [user-id :user1]
     (set-user-state user-id :current-dialogue :goro-dia)
     (let [result (with-out-str (process-user-input user-id "3"))]
-        (is (str/includes? result "Сегодня вы будете полны энергии, так что воспользуйтесь этим для работы!")))))
-
+      (is (str/includes? result "Сегодня вы будете полны энергии, так что воспользуйтесь этим для работы!")))))
 
 (deftest test-horoscope-selection-invalid
   (let [user-id :user1]
     (set-user-state user-id :current-dialogue :goro-dia)
-    (let [result (with-out-str (process-user-input user-id "34"))]  
+    (let [result (with-out-str (process-user-input user-id "34"))]
       (is (str/includes? result "Неверный выбор! Попробуйте снова.")))))
-
 
 (deftest test-get-random-joke
   (let [joke (get-random-joke)]
