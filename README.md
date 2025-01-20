@@ -1,44 +1,32 @@
-# lapuk4
+# Лабораторная работа №4
 
-FIXME: description
+## Титульный лист
 
-## Installation
+**Студент**: Зайцева Ирина Сергеевна
 
-Download from http://example.com/FIXME.
+**Группа**: P3309
 
-## Usage
+**ИСУ**: 367222
 
-FIXME: explanation
 
-    $ java -jar lapuk4-0.1.0-standalone.jar [args]
+## Требования к разработанному ПО
 
-## Options
 
-FIXME: listing of options this app accepts.
+### Описание алгоритмов
 
-## Examples
 
-...
 
-### Bugs
+## Ключевые элементы реализации
 
-...
+### Основные функции
 
-### Any Other Sections
-### That You Think
-### Might be Useful
 
-## License
+### Примеры ключевых участков кода
 
-Copyright © 2025 FIXME
 
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-http://www.eclipse.org/legal/epl-2.0.
+## Пример работы
 
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
+
+
+## Вывод
+Во время лабораторной работы я изучила макросы ....
