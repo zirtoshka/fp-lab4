@@ -1,6 +1,6 @@
 (ns lapuk4.core-test
-  (:require [clojure.test :refer :all]
-            [lapuk4.core :refer :all]))
+  (:require [clojure.test :refer [deftest is]]
+            [lapuk4.core :refer [defdialogue get-dialogue get-dialogue-for-user get-random-joke get-user-state process-user-input set-user-state]]))
 
 (deftest test-set-user-state
   (let [user-id :user1]
