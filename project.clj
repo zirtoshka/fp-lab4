@@ -7,4 +7,5 @@
   :main ^:skip-aot lapuk4.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
-                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
+                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
+  :plugins [[lein-cljfmt "0.6.7"]])

@@ -47,8 +47,6 @@
       (let [dialogue (get-dialogue dialogue-id)]
         (get-dialogue-text dialogue user-state)))))
 
-
-
 (defmacro defdialogue [name description & transitions]
   (letfn [(is-input-required [item]
             (and (map? item) (contains? item :input-required)))
@@ -72,7 +70,6 @@
     (Integer/parseInt input)
     (catch Exception _ nil)))
 
-
 (defn find-transition [transitions input]
   (let [input-index (parse-input input)]
     (cond
@@ -92,7 +89,7 @@
   (let [user-state (get-user-state user-id)
         current-dialogue (get-dialogue (:current-dialogue user-state))
         transitions (:transitions current-dialogue)
-        input-required (:input-required current-dialogue)] 
+        input-required (:input-required current-dialogue)]
     (cond
       input-required
       (let [transition (first transitions)]
@@ -111,13 +108,11 @@
           "До новых встреч!"
           {:error "Неверный ввод"})))))
 
-
 (defdialogue :main-menu
   "Добро пожаловать в чат-бот! Что хотите сделать?"
   {:text "Познакомиться" :next-id :introduce :action nil}
   {:text "Завершить" :next-id nil :action (fn [user-id _]
                                             (set-user-state user-id :current-dialogue nil))})
-
 
 (defdialogue :introduce
   "Как вас зовут?"
@@ -128,7 +123,6 @@
                           input)]
                (set-user-state user-id :name name)))}
   {:input-required true})
-
 
 (def jokes
   ["Почему программисты не бегают? Потому что их нельзя заставить выполнять ненужные циклы."
@@ -157,8 +151,6 @@
 (defn get-horoscope [zodiac-sign]
   (get horoscopes zodiac-sign "Не удалось получить гороскоп для этого знака."))
 
-
-
 (defdialogue :user-options
   "Dear, {{name}}! Что хотите сделать?"
   {:text "Новости" :next-id :news-topic :action nil}
@@ -170,7 +162,6 @@
                                         (let [name ((get-user-state user-id) :name)]
                                           (println (str name ", пока-пока!"))
                                           (set-user-state user-id :current-dialogue nil)))})
-
 
 (defdialogue :news-topic
   "Какие новости вас интересуют?"
@@ -194,13 +185,11 @@
   {:text "Вернуться" :next-id :news-topic :action nil}
   {:text "Вернуться в меню" :next-id :user-options :action nil})
 
-
 (defdialogue :forget-name
   "Вы хотите забыть ваше имя?"
   {:text "Да" :next-id :main-menu :action (fn [user-id _]
                                             (set-user-state user-id :name nil))}
   {:text "Нет" :next-id :user-options :action nil})
-
 
 (defn valid-input? [input max]
   (let [parsed (parse-input input)]
@@ -216,7 +205,6 @@
         (println (get-horoscope selected-sign)))
       (println "Неверный выбор! Попробуйте снова."))))
 
-
 (defdialogue :goro-dia
   (str "Выберите свой знак зодиака, введя номер:\n"
        (apply str (map #(str (inc %) ". " (name (nth zodiac-signs %)) " ") (range (count zodiac-signs)))))
@@ -224,9 +212,6 @@
    :action (fn [user-id input]
              (handle-horoscope-selection user-id input))}
   {:input-required true})
-
-
-
 
 (defn start-chat [user-id]
   (set-user-state user-id :current-dialogue :main-menu)
@@ -242,7 +227,6 @@
       (do (println result) false))
     (do (println (or (:error result) "Ошибка")) false)))
 
-
 (defn process-chat-loop [user-id]
   (loop []
     (let [input (read-line)
@@ -255,7 +239,7 @@
 (defn -main [& _]
   (let [user-id :user1
         start-message (start-chat user-id)]
-    (println start-message)   
-    (process-chat-loop user-id))) 
+    (println start-message)
+    (process-chat-loop user-id)))
 
 
