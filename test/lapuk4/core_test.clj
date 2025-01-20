@@ -29,7 +29,7 @@
   (let [user-id :user1]
     (set-user-state user-id :current-dialogue :user-options)
     (let [dialogue (get-dialogue-for-user user-id)]
-      (is (clojure.string/includes? dialogue "Что хотите сделать?")))))
+      (is (str/includes? dialogue "Что хотите сделать?")))))
 
 (deftest test-process-user-input-valid
   (let [user-id :user1]
