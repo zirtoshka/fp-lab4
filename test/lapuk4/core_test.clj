@@ -47,7 +47,7 @@
     "Test dialogue"
     {:text "Option 1" :next-id :next-dialogue :action nil}
     {:text "Option 2" :next-id :next-dialogue :action nil})
-  
+
   (let [dialogue (get-dialogue :test-dialogue)]
     (is (= (:description dialogue) "Test dialogue"))
     (is (not-empty (:transitions dialogue)))))
@@ -62,8 +62,7 @@
   (let [user-id :user1]
     (set-user-state user-id :current-dialogue :goro-dia)
     (let [result (process-user-input user-id "invalid")]
-      (is (contains? result "Попробуйте снова")))))  
-
+      (is (contains? result "Попробуйте снова")))))
 
 (deftest test-get-random-joke
   (let [joke (get-random-joke)]
