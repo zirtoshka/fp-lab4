@@ -20,89 +20,109 @@
 (defn get-dialogue [id]
   (get @dialogues id))
 
+(defn format-description [dialogue user-state]
+  (let [description (:description dialogue)]
+    (if-let [name (:name user-state)]
+      (clojure.string/replace description "{{name}}" name)
+      description)))
+
+(defn format-transitions [transitions]
+  (->> transitions
+       (map-indexed (fn [i t] (str (inc i) ". " (:text t))))
+       (clojure.string/join "\n")))
+
+(defn get-dialogue-text [dialogue user-state]
+  (let [description (format-description dialogue user-state)
+        transitions (:transitions dialogue)
+        inp-req (:input-required dialogue)]
+    (if inp-req
+      description
+      (str description "\n" (format-transitions transitions)))))
+
 (defn get-dialogue-for-user [user-id]
   (let [user-state (get-user-state user-id)
         dialogue-id (:current-dialogue user-state)]
     (if (nil? dialogue-id)
       "До новых встреч!"
-      (let [dialogue (get-dialogue dialogue-id)
-            description (if (:name user-state)
-                          (clojure.string/replace (:description dialogue) "{{name}}" (:name user-state))
-                          (:description dialogue))
-            transitions (:transitions dialogue)
-            inp-req (:input-required dialogue)]
-        (if inp-req
-          (str description)
-          (str description "\n"
-               (->> transitions
-                    (map-indexed (fn [i t] (str (inc i) ". " (:text t))))
-                    (clojure.string/join "\n"))))))))
+      (let [dialogue (get-dialogue dialogue-id)]
+        (get-dialogue-text dialogue user-state)))))
 
 
 
 (defmacro defdialogue [name description & transitions]
-  (let [last-item (last transitions)
-        input-required (if (and (map? last-item) (contains? last-item :input-required))
-                         (:input-required last-item)
-                         false)
-        processed-transitions
-        (map (fn [{:keys [text next-id action]}]
-               `(->Transition ~text ~next-id ~action))
-             (if input-required (butlast transitions) transitions))]
-    `(add-dialogue ~name
-                   ~description
-                   ~(vec processed-transitions)
-                   ~input-required)))
+  (letfn [(is-input-required [item]
+            (and (map? item) (contains? item :input-required)))
+          (process-transition [t]
+            (let [{:keys [text next-id action]} t]
+              `(->Transition ~text ~next-id ~action)))
+          (split-transitions [transitions]
+            (let [last-item (last transitions)]
+              (if (is-input-required last-item)
+                [(butlast transitions) (:input-required last-item)]
+                [transitions false])))]
+    (let [[transitions input-required] (split-transitions transitions)
+          processed-transitions (map process-transition transitions)]
+      `(add-dialogue ~name
+                     ~description
+                     ~(vec processed-transitions)
+                     ~input-required))))
 
+(defn parse-input [input]
+  (try
+    (Integer/parseInt input)
+    (catch Exception _ nil)))
+
+
+(defn find-transition [transitions input]
+  (let [input-index (parse-input input)]
+    (cond
+      (and input-index (<= input-index (count transitions)) (> input-index 0))
+      (nth transitions (dec input-index))
+
+      :else
+      (some #(when (= input (:text %)) %) transitions))))
+
+(defn process-transition [user-id transition input]
+  (when-let [action (:action transition)]
+    (action user-id input))
+  (when-let [next-id (:next-id transition)]
+    (set-user-state user-id :current-dialogue next-id)))
 
 (defn process-user-input [user-id input]
   (let [user-state (get-user-state user-id)
         current-dialogue (get-dialogue (:current-dialogue user-state))
         transitions (:transitions current-dialogue)
-        input-required (:input-required current-dialogue)]
+        input-required (:input-required current-dialogue)] 
     (cond
       input-required
-      (do
-        (when-let [action (:action (first transitions))]
-          (action user-id input))
-        (when-let [next-id (:next-id (first transitions))]
-          (set-user-state user-id :current-dialogue next-id))
+      (let [transition (first transitions)]
+        (process-transition user-id transition input)
         (get-dialogue-for-user user-id))
+
       (empty? transitions)
       {:error "Нет доступных действий"}
 
       :else
-      (let [input-index (try
-                          (Integer/parseInt input)
-                          (catch Exception _ nil))
-            matching-transition (cond
-                                  (and input-index (<= input-index (count transitions)) (> input-index 0))
-                                  (nth transitions (dec input-index) nil)
-                                  :else
-                                  (some #(when (= input (:text %)) %) transitions))]
-        (if matching-transition
-          (do
-            (println matching-transition)
-            (when-let [action (:action matching-transition)]
-              (action user-id input)
-              (println action))
-            (set-user-state user-id :current-dialogue (:next-id matching-transition))
-            (get-dialogue-for-user user-id))
-          (if (nil? (:current-dialogue user-state))
-            "До новых встреч!"
-            {:error "Неверный ввод"}))))))
+      (if-let [matching-transition (find-transition transitions input)]
+        (do
+          (process-transition user-id matching-transition input)
+          (get-dialogue-for-user user-id))
+        (if (nil? (:current-dialogue user-state))
+          "До новых встреч!"
+          {:error "Неверный ввод"})))))
+
 
 (defdialogue :main-menu
   "Добро пожаловать в чат-бот! Что хотите сделать?"
   {:text "Познакомиться" :next-id :introduce :action nil}
-  {:text "Завершить" :next-id nil :action nil})
+  {:text "Завершить" :next-id nil :action (fn [user-id _]
+                                            (set-user-state user-id :current-dialogue nil))})
 
 
 (defdialogue :introduce
   "Как вас зовут?"
   {:text nil :next-id :user-options
    :action (fn [user-id input]
-             (println "Полученный ввод:" input)
              (let [name (if (clojure.string/blank? input)
                           "Неопознанный енот"
                           input)]
@@ -137,6 +157,8 @@
 (defn get-horoscope [zodiac-sign]
   (get horoscopes zodiac-sign "Не удалось получить гороскоп для этого знака."))
 
+
+
 (defdialogue :user-options
   "Dear, {{name}}! Что хотите сделать?"
   {:text "Новости" :next-id :news-topic :action nil}
@@ -144,7 +166,11 @@
   {:text "Шутка" :next-id :user-options :action (fn [_ _]
                                                   (println (get-random-joke)))}
   {:text "Забыть имя" :next-id :forget-name :action nil}
-  {:text "Выйти" :next-id nil :action nil})
+  {:text "Выйти" :next-id nil :action (fn [user-id _]
+                                        (let [name ((get-user-state user-id) :name)]
+                                          (println (str name ", пока-пока!"))
+                                          (set-user-state user-id :current-dialogue nil)))})
+
 
 (defdialogue :news-topic
   "Какие новости вас интересуют?"
@@ -176,24 +202,27 @@
   {:text "Нет" :next-id :user-options :action nil})
 
 
-
+(defn valid-input? [input max]
+  (let [parsed (parse-input input)]
+    (and parsed (>= parsed 1) (<= parsed max))))
 
 (def zodiac-signs
   [:aries :taurus :gemini :cancer :leo :virgo :libra :scorpio :sagittarius :capricorn :aquarius :pisces])
 
+(defn handle-horoscope-selection [_ input]
+  (let [input-index (parse-input input)]
+    (if (valid-input? input (count zodiac-signs))
+      (let [selected-sign (nth zodiac-signs (dec input-index))]
+        (println (get-horoscope selected-sign)))
+      (println "Неверный выбор! Попробуйте снова."))))
+
+
 (defdialogue :goro-dia
   (str "Выберите свой знак зодиака, введя номер:\n"
-       (apply str (map #(str (inc %) "." (name (nth zodiac-signs %)) " ") (range (count zodiac-signs)))))
+       (apply str (map #(str (inc %) ". " (name (nth zodiac-signs %)) " ") (range (count zodiac-signs)))))
   {:text nil :next-id :user-options
    :action (fn [user-id input]
-             (let [input-index (try
-                                 (Integer/parseInt input)
-                                 (catch Exception _ nil))]
-               (if (and input-index (>= input-index 1) (<= input-index (count zodiac-signs)))
-                 (let [selected-sign (nth zodiac-signs (dec input-index))] ; Получаем знак по индексу
-                   (println (get-horoscope selected-sign))
-                   (set-user-state user-id :current-dialogue :user-options))  ; Возвращаем в меню
-                 (println "Неверный выбор! Попробуйте снова."))))}
+             (handle-horoscope-selection user-id input))}
   {:input-required true})
 
 
@@ -204,26 +233,29 @@
   (let [dialogue (get-dialogue-for-user user-id)]
     (if (str/blank? dialogue)
       "Ошибка: Не удалось загрузить начальный диалог."
-      dialogue))
-  (get-dialogue-for-user user-id))
+      dialogue)))
+
+(defn handle-result [result]
+  (if (string? result)
+    (if (= result "До новых встреч!")
+      (do (println result) true)
+      (do (println result) false))
+    (do (println (or (:error result) "Ошибка")) false)))
 
 
+(defn process-chat-loop [user-id]
+  (loop []
+    (let [input (read-line)
+          result (process-user-input user-id input)
+          exit? (handle-result result)]
+      (if exit?
+        (System/exit 0)
+        (recur)))))
 
-(defn -main [& args]
-  (println "Добро пожаловать в чат-бот!")
-  (let [user-id :user1]
-    (println (start-chat user-id))
-    (loop []
-      (let [input (read-line)
-            result (process-user-input user-id input)]
-        (if (string? result)
-          (do
-            (println result)
-            (when (= result "До новых встреч!")
-              (System/exit 0))
-            (recur))
-          (do
-            (println (or (:error result) "Ошибка"))
-            (recur)))))))
+(defn -main [& _]
+  (let [user-id :user1
+        start-message (start-chat user-id)]
+    (println start-message)   
+    (process-chat-loop user-id))) 
 
 
